@@ -1,0 +1,43 @@
+{
+  "general": {
+    "default_quality": "Best",
+    "save_location": "~/Music",
+    "filename_pattern": "{artist} - {title}",
+    "folder_structure": "{music_dir}/{artist}/{title}.mp3",
+    "theme": "System",
+    "search_history": [],
+    "favorites": [],
+    "duplicate_handling": "rename"
+  },
+  "metadata": {
+    "api_keys": {
+      "genius": "",
+      "lastfm": "",
+      "discogs": ""
+    },
+    "source_priority": [
+      "musicbrainz",
+      "shazam",
+      "lastfm",
+      "discogs",
+      "genius"
+    ],
+    "auto_metadata": true,
+    "force_refresh": false,
+    "fetch_lyrics": true,
+    "album_art_source": "itunes",
+    "album_art_size": "600x600"
+  },
+  "advanced": {
+    "concurrent_downloads": 3,
+    "retry_attempts": 3,
+    "timeout": 300,
+    "download_engine": "ytdlp",
+    "logging_level": "INFO",
+    "enable_notifications": true
+  },
+  "about": {
+    "version": "0.1.0",
+    "last_updated": null
+  }
+}

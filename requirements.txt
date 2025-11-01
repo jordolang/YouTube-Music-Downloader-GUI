@@ -1,0 +1,32 @@
+# GUI Framework
+customtkinter>=5.2.0
+Pillow>=10.0.0
+
+# YouTube and Video Processing
+yt-dlp>=2023.10.0
+youtube-search-python>=1.6.6
+
+# Audio Processing and Metadata
+eyed3>=0.9.7
+mutagen>=1.47.0
+
+# Network and Async
+aiohttp>=3.9.0
+requests>=2.31.0
+tenacity>=8.2.3
+
+# Notifications (macOS)
+pync>=2.0.3
+
+# Logging and CLI
+loguru>=0.7.2
+rich>=13.7.0
+
+# Data Validation
+pydantic>=2.5.0
+
+# Utilities
+packaging>=23.2
+
+# CLI Music Downloader Backend (install from local repo)
+# Install separately with: pip install -e ~/Repos/CLI-Music-Downloader

@@ -25,6 +25,7 @@ class SearchResult:
     view_count: int
     thumbnail_url: str
     estimated_size_bytes: Dict[int, int] = field(default_factory=dict)
+    ranking_score: float = 0.0  # Higher is better
     
     def __post_init__(self):
         """Calculate estimated sizes for different qualities"""
@@ -147,7 +148,13 @@ class YouTubeSearcher:
                     logger.error(f"Error parsing search result: {e}")
                     continue
             
-            logger.info(f"Found {len(search_results)} results")
+            # Rank results by quality (official > high views > avoid live)
+            self._rank_results(search_results)
+            
+            # Sort by ranking score (highest first)
+            search_results.sort(key=lambda x: x.ranking_score, reverse=True)
+            
+            logger.info(f"Found {len(search_results)} results (ranked by quality)")
             return search_results
             
         except Exception as e:
@@ -326,21 +333,121 @@ class YouTubeSearcher:
         except:
             return 0
     
+    def _rank_results(self, results: List[SearchResult]):
+        """
+        Rank search results based on quality indicators.
+        
+        Scoring criteria:
+        - Higher view count = better (normalized)
+        - "Official" in title = big bonus
+        - "Live" in title = penalty
+        - Official artist channels = bonus
+        - "Audio" or "Video" = slight bonus
+        - "Lyrics" = slight penalty (lyric videos are often lower quality)
+        """
+        if not results:
+            return
+        
+        # Find max views for normalization
+        max_views = max((r.view_count for r in results), default=1)
+        
+        for result in results:
+            score = 0.0
+            
+            title_lower = result.title.lower()
+            channel_lower = result.channel.lower()
+            
+            # 1. View count (0-40 points, normalized)
+            if max_views > 0:
+                view_score = (result.view_count / max_views) * 40
+                score += view_score
+            
+            # 2. "Official" indicators (+30 points)
+            if 'official' in title_lower:
+                score += 30
+                logger.debug(f"  +30: Official in title: {result.title}")
+            
+            if 'official' in channel_lower or 'vevo' in channel_lower:
+                score += 20
+                logger.debug(f"  +20: Official channel: {result.channel}")
+            
+            # 3. Content type bonuses
+            if 'official video' in title_lower:
+                score += 15
+            elif 'official audio' in title_lower:
+                score += 12
+            elif 'music video' in title_lower:
+                score += 8
+            
+            # 4. Penalties for unwanted content
+            if 'live' in title_lower:
+                score -= 25
+                logger.debug(f"  -25: Live performance: {result.title}")
+            
+            if 'cover' in title_lower:
+                score -= 15
+                logger.debug(f"  -15: Cover version")
+            
+            if 'lyrics' in title_lower and 'official' not in title_lower:
+                score -= 10
+                logger.debug(f"  -10: Lyric video (unofficial)")
+            
+            if 'karaoke' in title_lower:
+                score -= 20
+            
+            if 'instrumental' in title_lower:
+                score -= 15
+            
+            if 'remix' in title_lower and 'official' not in title_lower:
+                score -= 10
+            
+            # 5. Duration penalty for very long or very short videos
+            # Most songs are 2-6 minutes (120-360 seconds)
+            if result.duration_sec > 0:
+                if result.duration_sec < 60:  # Too short
+                    score -= 15
+                elif result.duration_sec > 600:  # Too long (10+ minutes)
+                    score -= 10
+            
+            result.ranking_score = score
+            logger.debug(f"Result score: {score:.1f} - {result.title} ({result.view_count:,} views)")
+    
     def _parse_views(self, views_str: str) -> int:
         """
         Parse view count string to integer.
         
-        Examples: "1,234,567 views" -> 1234567
+        Examples: 
+        - "1,234,567 views" -> 1234567
+        - "152M views" -> 152000000
+        - "876K views" -> 876000
+        - "1.5B views" -> 1500000000
         """
         if not views_str:
             return 0
         
         try:
-            # Remove non-numeric characters except commas and periods
-            cleaned = re.sub(r'[^\d,.]', '', views_str)
-            # Remove commas
-            cleaned = cleaned.replace(',', '')
-            return int(float(cleaned))
+            views_str = views_str.upper()
+            
+            # Check for multipliers
+            multiplier = 1
+            if 'B' in views_str:  # Billions
+                multiplier = 1_000_000_000
+                views_str = views_str.replace('B', '')
+            elif 'M' in views_str:  # Millions
+                multiplier = 1_000_000
+                views_str = views_str.replace('M', '')
+            elif 'K' in views_str:  # Thousands
+                multiplier = 1_000
+                views_str = views_str.replace('K', '')
+            
+            # Remove non-numeric characters except periods
+            cleaned = re.sub(r'[^\d.]', '', views_str)
+            
+            if not cleaned:
+                return 0
+            
+            # Convert to number and apply multiplier
+            return int(float(cleaned) * multiplier)
         except:
             return 0
 

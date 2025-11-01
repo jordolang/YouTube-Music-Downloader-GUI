@@ -64,6 +64,9 @@ def format_duration(seconds: int) -> str:
     Returns:
         Formatted duration string
     """
+    # Convert to int if it's a float
+    seconds = int(seconds) if seconds else 0
+    
     if seconds < 0:
         return "00:00"
     

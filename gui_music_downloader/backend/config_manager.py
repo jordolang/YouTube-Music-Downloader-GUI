@@ -124,6 +124,23 @@ class ConfigManager:
                 "logging_level": "INFO",
                 "enable_notifications": True
             },
+            "services": {
+                "spotify": {
+                    "enabled": False,
+                    "client_id": "",
+                    "client_secret": "",
+                    "last_sync": None,
+                    "include_liked": True,
+                    "include_playlists": True,
+                },
+                "apple_music": {
+                    "enabled": False,
+                    "developer_token": "",
+                    "last_sync": None,
+                    "include_library": True,
+                    "include_playlists": True,
+                },
+            },
             "about": {
                 "version": constants.APP_VERSION,
                 "last_updated": None

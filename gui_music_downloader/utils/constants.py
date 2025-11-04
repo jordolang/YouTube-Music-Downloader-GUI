@@ -28,6 +28,7 @@ THUMBNAILS_DIR.mkdir(parents=True, exist_ok=True)
 CONFIG_FILE = CONFIG_DIR / "config.json"
 QUEUE_STATE_FILE = CONFIG_DIR / "queue_state.json"
 LOG_FILE = LOGS_DIR / "app.log"
+TOKENS_FILE = CONFIG_DIR / "tokens.json"
 
 # Quality Options (kbps)
 QUALITY_OPTIONS = {

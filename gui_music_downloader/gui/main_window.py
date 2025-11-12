@@ -313,54 +313,63 @@ class MainWindow(ctk.CTk):
     def _search_thread(self, query: str):
         """Search in background thread"""
         try:
+            logger.info(f"Starting search for: {query}")
             results = self.searcher.search_videos(query, limit=10)
+            logger.info(f"Search returned {len(results)} results")
             
             # Update UI in main thread
             self.after(0, self._display_results, results)
             
         except Exception as e:
-            logger.error(f"Search failed: {e}")
+            logger.error(f"Search failed: {e}", exc_info=True)
             self.after(0, self._update_status, f"❌ Search failed: {e}")
         finally:
             self.after(0, lambda: self.search_entry.configure(state="normal"))
     
     def _display_results(self, results: List[SearchResult]):
         """Display search results"""
+        logger.info(f"_display_results called with {len(results)} results")
         self.search_results = results
         self.selected_indices = []
         
-        # Clear previous results
-        for widget in self.results_frame.winfo_children():
-            widget.destroy()
-        
-        if not results:
-            self._update_status("❌ No results found")
-            no_results = ctk.CTkLabel(
+        try:
+            # Clear previous results
+            for widget in self.results_frame.winfo_children():
+                widget.destroy()
+            
+            if not results:
+                self._update_status("❌ No results found")
+                no_results = ctk.CTkLabel(
+                    self.results_frame,
+                    text="No results found. Try a different search query.",
+                    font=("SF Pro Display", 14),
+                    text_color="gray"
+                )
+                no_results.grid(row=0, column=0, pady=50)
+                return
+            
+            self._update_status(f"✅ Found {len(results)} results")
+            
+            # Display each result
+            for i, result in enumerate(results):
+                logger.debug(f"Creating card {i} for: {result.title[:50]}")
+                self._create_result_card(i, result)
+            
+            # Download button
+            download_all_btn = ctk.CTkButton(
                 self.results_frame,
-                text="No results found. Try a different search query.",
-                font=("SF Pro Display", 14),
-                text_color="gray"
+                text="⬇️ Download Selected",
+                command=self._download_selected,
+                height=45,
+                font=("SF Pro Display", 15, "bold"),
+                fg_color="#1DB954",
+                hover_color="#1ed760"
             )
-            no_results.grid(row=0, column=0, pady=50)
-            return
-        
-        self._update_status(f"✅ Found {len(results)} results")
-        
-        # Display each result
-        for i, result in enumerate(results):
-            self._create_result_card(i, result)
-        
-        # Download button
-        download_all_btn = ctk.CTkButton(
-            self.results_frame,
-            text="⬇️ Download Selected",
-            command=self._download_selected,
-            height=45,
-            font=("SF Pro Display", 15, "bold"),
-            fg_color="#1DB954",
-            hover_color="#1ed760"
-        )
-        download_all_btn.grid(row=len(results) + 1, column=0, pady=20, sticky="ew")
+            download_all_btn.grid(row=len(results) + 1, column=0, pady=20, sticky="ew")
+            logger.info("Results display complete")
+        except Exception as e:
+            logger.error(f"Error displaying results: {e}", exc_info=True)
+            self._update_status(f"❌ Error displaying results: {e}")
     
     def _create_result_card(self, index: int, result: SearchResult):
         """Create a result card"""
@@ -374,7 +383,7 @@ class MainWindow(ctk.CTk):
             card,
             text="",
             variable=var,
-            command=lambda: self._toggle_selection(index, var.get()),
+            command=lambda idx=index, v=var: self._toggle_selection(idx, v.get()),
             width=30
         )
         checkbox.grid(row=0, column=0, rowspan=2, padx=(10, 5), pady=10)
@@ -416,7 +425,7 @@ class MainWindow(ctk.CTk):
         download_btn = ctk.CTkButton(
             card,
             text="⬇️",
-            command=lambda: self._download_single(index),
+            command=lambda idx=index: self._download_single(idx),
             width=40,
             height=40
         )
